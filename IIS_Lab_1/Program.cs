@@ -11,7 +11,7 @@ namespace IIS_Lab_1
     internal class Program
     {
         private static readonly string HF_API_URL = "https://router.huggingface.co/hf-inference/models/distilbert/distilbert-base-uncased-finetuned-sst-2-english";
-        //private static readonly string HF_API_TOKEN = "";
+        private static readonly string HF_API_TOKEN = "";
 
         static async Task Main(string[] args)
         {

@@ -59,11 +59,9 @@ namespace IIS_Lab_1
 
                 try
                 {
-                    // Парсимо JSON
                     var jsonArray = JArray.Parse(responseString);
-                    var scores = jsonArray[0]; // Беремо перший масив об'єктів
+                    var scores = jsonArray[0];
 
-                    // Знаходимо елемент з найбільшою ймовірністю
                     JToken top = null;
                     double maxScore = -1;
                     foreach (var item in scores)

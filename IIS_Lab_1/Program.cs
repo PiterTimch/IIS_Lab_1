@@ -1,93 +1,41 @@
 ﻿using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 using System;
 using System.Net.Http;
-using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace IIS_Lab_1
+class Program
 {
-    internal class Program
+    private static readonly string apiToken = "YOUR_HUGGINGFACE_API_TOKEN";
+    private static readonly string model = "classla/xlm-roberta-base-multilingual-text-genre-classifier";
+
+    static async Task Main(string[] args)
     {
-        private static readonly string HF_API_URL = "https://router.huggingface.co/hf-inference/models/distilbert/distilbert-base-uncased-finetuned-sst-2-english";
-        private static readonly string HF_API_TOKEN = "";
+        string text = "In a distant future, humanity explores the depths of space...";
+        var result = await ClassifyGenre(text);
+        Console.WriteLine(result);
+    }
 
-        static async Task Main(string[] args)
+    static async Task<string> ClassifyGenre(string text)
+    {
+        using (var client = new HttpClient())
         {
-            Console.WriteLine("Виберіть варіант:");
-            Console.WriteLine("1 - Ввести свій текст");
-            Console.WriteLine("2 - Використати тестовий текст");
+            client.DefaultRequestHeaders.Add("Authorization", $"Bearer {apiToken}");
 
-            string choice = Console.ReadLine();
-            string text = "";
-
-            switch (choice)
+            var payload = new
             {
-                case "1":
-                    Console.WriteLine("Введіть текст для аналізу:");
-                    text = Console.ReadLine();
-                    break;
-                case "2":
-                    text = @"Programming involves writing code, testing it, and fixing errors.
-                            It requires focus, logic, and patience.";
-                    Console.WriteLine($"Використано тестовий текст: {text}");
-                    break;
-                default:
-                    Console.WriteLine("Невірний вибір. Використано тестовий текст за замовчуванням.");
-                    text = "I love programming! It is so much fun.";
-                    break;
-            }
+                inputs = text
+            };
 
-            var result = await AnalyzeSentiment(text);
-            Console.WriteLine("Результат аналізу сентименту:");
-            Console.WriteLine(result);
-        }
+            string jsonPayload = JsonConvert.SerializeObject(payload);
 
-        private static async Task<string> AnalyzeSentiment(string text)
-        {
-            using (var client = new HttpClient())
-            {
-                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", HF_API_TOKEN);
+            var content = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
 
-                var payload = new { inputs = text };
-                var jsonPayload = JsonConvert.SerializeObject(payload);
+            var response = await client.PostAsync($"https://api-inference.huggingface.co/models/{model}", content);
+            response.EnsureSuccessStatusCode();
 
-                var content = new StringContent(jsonPayload, Encoding.UTF8, "application/json");
-                var response = await client.PostAsync(HF_API_URL, content);
-                var responseString = await response.Content.ReadAsStringAsync();
-
-                try
-                {
-                    var jsonArray = JArray.Parse(responseString);
-                    var scores = jsonArray[0];
-
-                    JToken top = null;
-                    double maxScore = -1;
-                    foreach (var item in scores)
-                    {
-                        double score = item.Value<double>("score");
-                        if (score > maxScore)
-                        {
-                            maxScore = score;
-                            top = item;
-                        }
-                    }
-
-                    if (top != null)
-                    {
-                        string label = top.Value<string>("label");
-                        double score = top.Value<double>("score");
-                        return $"{label} (ймовірність: {score:F2})";
-                    }
-                }
-                catch (Exception ex)
-                {
-                    return $"Помилка обробки результату: {ex.Message}";
-                }
-
-                return "Не вдалося визначити сентимент.";
-            }
+            string result = await response.Content.ReadAsStringAsync();
+            return result;
         }
     }
 }
